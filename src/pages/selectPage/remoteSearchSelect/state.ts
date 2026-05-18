@@ -1,3 +1,6 @@
+/**
+ * 远程搜索状态辅助函数：合并选项列表、解析分页总数与是否还有更多数据。
+ */
 export function mergeRemoteOptions<OptionType>(
   previousOptions: OptionType[],
   nextOptions: OptionType[],

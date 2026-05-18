@@ -1,3 +1,6 @@
+/**
+ * 远程搜索 Select 组件：支持防抖搜索、分页与无限滚动两种加载模式。
+ */
 import type { ReactElement, ReactNode, UIEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SelectProps } from "antd";

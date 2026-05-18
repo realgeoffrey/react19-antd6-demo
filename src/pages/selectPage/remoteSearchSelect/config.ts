@@ -1,3 +1,6 @@
+/**
+ * 示例配置：搜索 API 地址、请求构建与 fetchUserOptions 数据拉取。
+ */
 import type {
   RemoteSearchFetchParams,
   RemoteSearchFetchResult,

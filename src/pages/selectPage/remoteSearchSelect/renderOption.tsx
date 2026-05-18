@@ -1,3 +1,6 @@
+/**
+ * 自定义选项渲染：在用户选项中展示头像与姓名。
+ */
 import { Avatar } from "antd";
 import type { UserOption } from "./config";
 

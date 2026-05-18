@@ -1,3 +1,6 @@
+/**
+ * 模块对外导出入口：组件、类型、示例数据请求与选项渲染函数。
+ */
 export { RemoteSearchSelect } from "./RemoteSearchSelect";
 export { fetchUserOptions } from "./config";
 export { renderUserOption } from "./renderOption";

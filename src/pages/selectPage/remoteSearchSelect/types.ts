@@ -1,3 +1,6 @@
+/**
+ * 远程搜索 Select 的类型定义：选项结构、请求参数与加载模式等。
+ */
 import type { ReactNode } from "react";
 
 export type SelectMode = "single" | "multiple";
