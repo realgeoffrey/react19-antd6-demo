@@ -25,6 +25,11 @@ const loadModeOptions: { label: string; value: LoadMode }[] = [
   { label: "无限滚动", value: "infinite" },
 ];
 
+const allowClearOptions: { label: string; value: boolean }[] = [
+  { label: "可清空", value: true },
+  { label: "不可清空", value: false },
+];
+
 function getSelectedUsers(
   value: SelectedUserValue | SelectedUserValue[] | undefined,
 ) {
@@ -62,6 +67,7 @@ export default function SelectPage() {
   const [selectionMode, setSelectionMode] =
     useState<SelectMode>("multiple");
   const [loadMode, setLoadMode] = useState<LoadMode>("pagination");
+  const [allowClear, setAllowClear] = useState(true);
   const [singleValue, setSingleValue] = useState<SelectedUserValue>();
   const [multipleValue, setMultipleValue] = useState<SelectedUserValue[]>([]);
 
@@ -96,10 +102,18 @@ export default function SelectPage() {
                 setLoadMode(nextMode as LoadMode);
               }}
             />
+
+            <Segmented
+              options={allowClearOptions}
+              value={allowClear}
+              onChange={(nextAllowClear) => {
+                setAllowClear(nextAllowClear as boolean);
+              }}
+            />
           </Space>
 
           <RemoteSearchSelect
-            allowClear
+            allowClear={allowClear}
             key={`${selectionMode}-${loadMode}`}
             fetchOptions={fetchUserOptions}
             loadMode={loadMode}
