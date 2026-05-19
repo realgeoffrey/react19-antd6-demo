@@ -9,6 +9,28 @@ export function mergeRemoteOptions<OptionType>(
   return append ? [...previousOptions, ...nextOptions] : nextOptions;
 }
 
+export function getRemoteSearchShowSearchConfig(
+  searchValue: string,
+) {
+  return {
+    autoClearSearchValue: false,
+    filterOption: false,
+    searchValue,
+  };
+}
+
+export function shouldAllowPaginationPopupMouseDown(
+  target: EventTarget | null,
+) {
+  const closest = (target as { closest?: unknown } | null)?.closest;
+
+  if (typeof closest !== "function") {
+    return false;
+  }
+
+  return Boolean(closest.call(target, ".ant-pagination-options"));
+}
+
 export function getHasMore(
   resultLength: number,
   limit: number,

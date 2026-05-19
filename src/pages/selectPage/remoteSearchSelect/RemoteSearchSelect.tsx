@@ -1,14 +1,16 @@
 /**
  * 远程搜索 Select 组件：支持防抖搜索、分页与无限滚动两种加载模式。
  */
-import type { ReactElement, ReactNode, UIEvent } from "react";
+import type { FocusEvent, ReactElement, ReactNode, UIEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SelectProps } from "antd";
 import { Pagination, Select, Space, Spin } from "antd";
 import {
   getHasMore,
   getPaginationTotal,
+  getRemoteSearchShowSearchConfig,
   mergeRemoteOptions,
+  shouldAllowPaginationPopupMouseDown,
 } from "./state";
 import type {
   LoadMode,
@@ -19,7 +21,7 @@ import type {
 } from "./types";
 
 const DEFAULT_PAGE_SIZE = 10;
-const DEFAULT_DEBOUNCE_TIMEOUT = 300;
+const DEFAULT_DEBOUNCE_TIMEOUT = 500;
 const LOAD_MORE_THRESHOLD = 24;
 const LOADING_OPTION_VALUE = "__remote_search_loading_more__";
 
@@ -56,6 +58,8 @@ export function RemoteSearchSelect<
   pageSize = DEFAULT_PAGE_SIZE,
   renderOption,
   selectMode = "multiple",
+  onBlur,
+  onFocus,
   ...props
 }: RemoteSearchSelectProps<OptionType>) {
   const [fetching, setFetching] = useState(false);
@@ -64,6 +68,7 @@ export function RemoteSearchSelect<
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(pageSize);
+  const [inputFocused, setInputFocused] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [total, setTotal] = useState(0);
   const fetchRef = useRef(0);
@@ -145,16 +150,33 @@ export function RemoteSearchSelect<
 
   const handleSearch = useCallback(
     (value: string) => {
+      setSearchText(value);
+
       if (searchTimerRef.current !== undefined) {
         window.clearTimeout(searchTimerRef.current);
       }
 
       searchTimerRef.current = window.setTimeout(() => {
-        setSearchText(value);
         loadOptions(value, 1, currentPageSize, false);
       }, debounceTimeout);
     },
     [currentPageSize, debounceTimeout, loadOptions],
+  );
+
+  const handleFocus = useCallback(
+    (event: FocusEvent<HTMLElement>) => {
+      setInputFocused(true);
+      onFocus?.(event);
+    },
+    [onFocus],
+  );
+
+  const handleBlur = useCallback(
+    (event: FocusEvent<HTMLElement>) => {
+      setInputFocused(false);
+      onBlur?.(event);
+    },
+    [onBlur],
   );
 
   useEffect(() => {
@@ -179,6 +201,14 @@ export function RemoteSearchSelect<
       } as OptionType,
     ];
   }, [loadingMore, loadingOptionLabel, options]);
+
+  const showSearchConfig = useMemo(
+    () => ({
+      ...getRemoteSearchShowSearchConfig(inputFocused ? searchText : ""),
+      onSearch: handleSearch,
+    }),
+    [handleSearch, inputFocused, searchText],
+  );
 
   const handlePopupScroll = (event: UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
@@ -218,6 +248,10 @@ export function RemoteSearchSelect<
             padding: "8px",
           }}
           onMouseDown={(event) => {
+            if (shouldAllowPaginationPopupMouseDown(event.target)) {
+              return;
+            }
+
             event.preventDefault();
             event.stopPropagation();
           }}
@@ -243,12 +277,14 @@ export function RemoteSearchSelect<
       labelInValue
       loading={fetching}
       mode={selectMode === "multiple" ? "multiple" : undefined}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
       onOpenChange={handleOpenChange}
       onPopupScroll={
         loadMode === "infinite" ? handlePopupScroll : undefined
       }
       popupRender={popupRender}
-      showSearch={{ filterOption: false, onSearch: handleSearch }}
+      showSearch={showSearchConfig}
       notFoundContent={fetching ? <Spin size="small" /> : "No results found"}
       options={loadMode === "infinite" ? mergedOptions : options}
       optionRender={(option) => {

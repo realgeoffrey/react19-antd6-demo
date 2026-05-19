@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   getHasMore,
   getPaginationTotal,
+  getRemoteSearchShowSearchConfig,
   getTotalFromHeaders,
   mergeRemoteOptions,
+  shouldAllowPaginationPopupMouseDown,
 } from "../src/pages/selectPage/remoteSearchSelect/state.ts";
 
 const previousOptions = [
@@ -46,4 +48,23 @@ test("getPaginationTotal uses API total before fallback total", () => {
   assert.equal(getPaginationTotal(85, 3, 10, 4), 85);
   assert.equal(getPaginationTotal(undefined, 1, 10, 10), 11);
   assert.equal(getPaginationTotal(undefined, 3, 10, 4), 24);
+});
+
+test("getRemoteSearchShowSearchConfig keeps displayed input tied to search text", () => {
+  assert.deepEqual(getRemoteSearchShowSearchConfig("Alice"), {
+    autoClearSearchValue: false,
+    filterOption: false,
+    searchValue: "Alice",
+  });
+});
+
+test("shouldAllowPaginationPopupMouseDown lets pagination option controls keep focus", () => {
+  const target = {
+    closest(selector: string) {
+      return selector === ".ant-pagination-options" ? {} : null;
+    },
+  } as EventTarget;
+
+  assert.equal(shouldAllowPaginationPopupMouseDown(target), true);
+  assert.equal(shouldAllowPaginationPopupMouseDown(null), false);
 });
