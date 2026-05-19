@@ -27,6 +27,17 @@ export function shouldSkipClearSearchRequest(
   return skipClearSearchRequest && searchText === "";
 }
 
+/** 滚动接近底部时触发无限滚动加载 */
+export function isNearScrollBottom(
+  target: HTMLElement,
+  threshold: number,
+) {
+  return (
+    target.scrollTop + target.offsetHeight >=
+    target.scrollHeight - threshold
+  );
+}
+
 export function getMinimumNotFoundContentHeight(
   optionHeight: number,
   minOptionCount: number,

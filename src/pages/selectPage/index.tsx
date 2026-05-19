@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Card, Segmented, Space, Typography } from "antd";
 import {
   fetchUserOptions,
@@ -15,29 +15,45 @@ type SelectedUserValue = {
   value: string | number;
 };
 
-const selectionModeOptions: { label: string; value: SelectMode }[] = [
+type DemoSegmentedOption<T> = { label: string; value: T };
+
+const selectionModeOptions: DemoSegmentedOption<SelectMode>[] = [
   { label: "单选", value: "single" },
   { label: "多选", value: "multiple" },
 ];
 
-const loadModeOptions: { label: string; value: LoadMode }[] = [
+const loadModeOptions: DemoSegmentedOption<LoadMode>[] = [
   { label: "翻页", value: "pagination" },
   { label: "无限滚动", value: "infinite" },
 ];
 
-const allowClearOptions: { label: string; value: boolean }[] = [
+const allowClearOptions: DemoSegmentedOption<boolean>[] = [
   { label: "可清空", value: true },
   { label: "不可清空", value: false },
 ];
 
-function getSelectedUsers(
+function DemoSegmented<T extends string | boolean>({
+  options,
+  value,
+  onChange,
+}: {
+  options: DemoSegmentedOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <Segmented
+      options={options}
+      value={value}
+      onChange={(nextValue) => onChange(nextValue as T)}
+    />
+  );
+}
+
+function normalizeSelectedUsers(
   value: SelectedUserValue | SelectedUserValue[] | undefined,
 ) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  return value ? [value] : [];
+  return Array.isArray(value) ? value : value ? [value] : [];
 }
 
 function SelectedUsers({
@@ -45,7 +61,7 @@ function SelectedUsers({
 }: {
   value: SelectedUserValue | SelectedUserValue[] | undefined;
 }) {
-  const selectedUsers = getSelectedUsers(value);
+  const selectedUsers = normalizeSelectedUsers(value);
 
   return (
     <Space direction="vertical" size={4}>
@@ -74,6 +90,18 @@ export default function SelectPage() {
   const value =
     selectionMode === "multiple" ? multipleValue : singleValue;
 
+  const handleSelectChange = useCallback(
+    (newValue: SelectedUserValue | SelectedUserValue[] | undefined) => {
+      if (selectionMode === "multiple") {
+        setMultipleValue(Array.isArray(newValue) ? newValue : []);
+        return;
+      }
+
+      setSingleValue(Array.isArray(newValue) ? undefined : newValue);
+    },
+    [selectionMode],
+  );
+
   return (
     <main className="demo-page">
       <section className="demo-header">
@@ -87,28 +115,20 @@ export default function SelectPage() {
       <Card className="demo-card">
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
           <Space wrap>
-            <Segmented
+            <DemoSegmented
               options={selectionModeOptions}
               value={selectionMode}
-              onChange={(nextMode) => {
-                setSelectionMode(nextMode as SelectMode);
-              }}
+              onChange={setSelectionMode}
             />
-
-            <Segmented
+            <DemoSegmented
               options={loadModeOptions}
               value={loadMode}
-              onChange={(nextMode) => {
-                setLoadMode(nextMode as LoadMode);
-              }}
+              onChange={setLoadMode}
             />
-
-            <Segmented
+            <DemoSegmented
               options={allowClearOptions}
               value={allowClear}
-              onChange={(nextAllowClear) => {
-                setAllowClear(nextAllowClear as boolean);
-              }}
+              onChange={setAllowClear}
             />
           </Space>
 
@@ -117,14 +137,7 @@ export default function SelectPage() {
             key={`${selectionMode}-${loadMode}`}
             fetchOptions={fetchUserOptions}
             loadMode={loadMode}
-            onChange={(newValue) => {
-              if (selectionMode === "multiple") {
-                setMultipleValue(Array.isArray(newValue) ? newValue : []);
-                return;
-              }
-
-              setSingleValue(Array.isArray(newValue) ? undefined : newValue);
-            }}
+            onChange={handleSelectChange}
             placeholder="Select users"
             renderOption={renderUserOption}
             selectMode={selectionMode}
