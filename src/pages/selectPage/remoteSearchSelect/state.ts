@@ -9,6 +9,21 @@ export function mergeRemoteOptions<OptionType>(
   return append ? [...previousOptions, ...nextOptions] : nextOptions;
 }
 
+export function getMinimumNotFoundContentHeight(
+  optionHeight: number,
+  minOptionCount: number,
+) {
+  return optionHeight * minOptionCount;
+}
+
+export function getPaginationRequestPage(
+  nextPage: number,
+  nextPageSize: number,
+  currentPageSize: number,
+) {
+  return nextPageSize === currentPageSize ? nextPage : 1;
+}
+
 export function getRemoteSearchShowSearchConfig(
   searchValue: string,
 ) {

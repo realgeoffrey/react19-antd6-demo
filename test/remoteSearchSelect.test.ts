@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   getHasMore,
+  getMinimumNotFoundContentHeight,
+  getPaginationRequestPage,
   getPaginationTotal,
   getRemoteSearchShowSearchConfig,
   getTotalFromHeaders,
@@ -29,6 +31,11 @@ test("mergeRemoteOptions replaces options for pagination loading", () => {
     mergeRemoteOptions(previousOptions, nextOptions, false),
     nextOptions,
   );
+});
+
+test("getPaginationRequestPage starts from page 1 when page size changes", () => {
+  assert.equal(getPaginationRequestPage(3, 20, 10), 1);
+  assert.equal(getPaginationRequestPage(3, 10, 10), 3);
 });
 
 test("getHasMore prefers explicit API value and otherwise checks full page", () => {
@@ -67,4 +74,8 @@ test("shouldAllowPaginationPopupMouseDown lets pagination option controls keep f
 
   assert.equal(shouldAllowPaginationPopupMouseDown(target), true);
   assert.equal(shouldAllowPaginationPopupMouseDown(null), false);
+});
+
+test("getMinimumNotFoundContentHeight keeps empty and loading dropdowns at three option rows", () => {
+  assert.equal(getMinimumNotFoundContentHeight(32, 3), 96);
 });

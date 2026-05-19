@@ -7,6 +7,8 @@ import type { SelectProps } from "antd";
 import { Pagination, Select, Space, Spin } from "antd";
 import {
   getHasMore,
+  getMinimumNotFoundContentHeight,
+  getPaginationRequestPage,
   getPaginationTotal,
   getRemoteSearchShowSearchConfig,
   mergeRemoteOptions,
@@ -24,6 +26,8 @@ const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_DEBOUNCE_TIMEOUT = 500;
 const LOAD_MORE_THRESHOLD = 24;
 const LOADING_OPTION_VALUE = "__remote_search_loading_more__";
+const OPTION_HEIGHT = 32;
+const MIN_NOT_FOUND_OPTION_COUNT = 4;
 
 export type RemoteSearchSelectProps<
   OptionType extends RemoteSearchOption = RemoteSearchOption,
@@ -210,6 +214,22 @@ export function RemoteSearchSelect<
     [handleSearch, inputFocused, searchText],
   );
 
+  const notFoundContent = (
+    <div
+      style={{
+        alignItems: "center",
+        display: "flex",
+        justifyContent: "center",
+        minHeight: getMinimumNotFoundContentHeight(
+          OPTION_HEIGHT,
+          MIN_NOT_FOUND_OPTION_COUNT,
+        ),
+      }}
+    >
+      {fetching ? <Spin size="small" /> : "No results found"}
+    </div>
+  );
+
   const handlePopupScroll = (event: UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     const isNearBottom =
@@ -231,7 +251,12 @@ export function RemoteSearchSelect<
     nextPage: number,
     nextPageSize: number,
   ) => {
-    loadOptions(searchText, nextPage, nextPageSize, false);
+    loadOptions(
+      searchText,
+      getPaginationRequestPage(nextPage, nextPageSize, currentPageSize),
+      nextPageSize,
+      false,
+    );
   };
 
   const popupRender = (menu: ReactElement) => {
@@ -285,7 +310,7 @@ export function RemoteSearchSelect<
       }
       popupRender={popupRender}
       showSearch={showSearchConfig}
-      notFoundContent={fetching ? <Spin size="small" /> : "No results found"}
+      notFoundContent={notFoundContent}
       options={loadMode === "infinite" ? mergedOptions : options}
       optionRender={(option) => {
         if (option.data.value === LOADING_OPTION_VALUE) {
