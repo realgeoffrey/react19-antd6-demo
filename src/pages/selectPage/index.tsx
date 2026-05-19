@@ -42,10 +42,10 @@ function DemoSegmented<T extends string | number | boolean>({
   onChange: (value: T) => void;
 }) {
   return (
-    <Segmented<T>
+    <Segmented
       options={options}
       value={value}
-      onChange={onChange}
+      onChange={(nextValue) => onChange(nextValue as T)}
     />
   );
 }
@@ -115,17 +115,17 @@ export default function SelectPage() {
       <Card className="demo-card">
         <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           <Space wrap>
-            <DemoSegmented
+            <DemoSegmented<SelectMode>
               options={selectionModeOptions}
               value={selectionMode}
               onChange={setSelectionMode}
             />
-            <DemoSegmented
+            <DemoSegmented<LoadMode>
               options={loadModeOptions}
               value={loadMode}
               onChange={setLoadMode}
             />
-            <DemoSegmented
+            <DemoSegmented<boolean>
               options={allowClearOptions}
               value={allowClear}
               onChange={setAllowClear}
