@@ -9,6 +9,24 @@ export function mergeRemoteOptions<OptionType>(
   return append ? [...previousOptions, ...nextOptions] : nextOptions;
 }
 
+export function getClearedRemoteSearchState<OptionType = never>() {
+  return {
+    hasMore: false,
+    open: false,
+    options: [] as OptionType[],
+    page: 1,
+    searchText: "",
+    total: 0,
+  };
+}
+
+export function shouldSkipClearSearchRequest(
+  searchText: string,
+  skipClearSearchRequest: boolean,
+) {
+  return skipClearSearchRequest && searchText === "";
+}
+
 export function getMinimumNotFoundContentHeight(
   optionHeight: number,
   minOptionCount: number,

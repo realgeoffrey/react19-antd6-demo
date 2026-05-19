@@ -6,12 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SelectProps } from "antd";
 import { Pagination, Select, Space, Spin } from "antd";
 import {
+  getClearedRemoteSearchState,
   getHasMore,
   getMinimumNotFoundContentHeight,
   getPaginationRequestPage,
   getPaginationTotal,
   getRemoteSearchShowSearchConfig,
   mergeRemoteOptions,
+  shouldSkipClearSearchRequest,
   shouldAllowPaginationPopupMouseDown,
 } from "./state";
 import type {
@@ -33,20 +35,25 @@ export type RemoteSearchSelectProps<
   OptionType extends RemoteSearchOption = RemoteSearchOption,
 > = Omit<
   SelectProps<RemoteSearchValue, OptionType>,
+  | "allowClear"
   | "children"
   | "labelInValue"
   | "mode"
   | "notFoundContent"
   | "onOpenChange"
   | "onPopupScroll"
+  | "onClear"
+  | "open"
   | "options"
   | "popupRender"
   | "showSearch"
 > & {
+  allowClear?: SelectProps<RemoteSearchValue, OptionType>["allowClear"];
   debounceTimeout?: number;
   fetchOptions: RemoteSearchFetcher<OptionType>;
   loadMode?: LoadMode;
   loadingOptionLabel?: ReactNode;
+  onClear?: SelectProps<RemoteSearchValue, OptionType>["onClear"];
   pageSize?: number;
   renderOption?: (option: OptionType) => ReactNode;
   selectMode?: SelectMode;
@@ -55,14 +62,17 @@ export type RemoteSearchSelectProps<
 export function RemoteSearchSelect<
   OptionType extends RemoteSearchOption = RemoteSearchOption,
 >({
+  allowClear = false,
   debounceTimeout = DEFAULT_DEBOUNCE_TIMEOUT,
   fetchOptions,
   loadMode = "pagination",
   loadingOptionLabel = "Loading more...",
   pageSize = DEFAULT_PAGE_SIZE,
+  popupStyle,
   renderOption,
   selectMode = "multiple",
   onBlur,
+  onClear,
   onFocus,
   ...props
 }: RemoteSearchSelectProps<OptionType>) {
@@ -73,10 +83,12 @@ export function RemoteSearchSelect<
   const [page, setPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(pageSize);
   const [inputFocused, setInputFocused] = useState(false);
+  const [open, setOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [total, setTotal] = useState(0);
   const fetchRef = useRef(0);
   const searchTimerRef = useRef<number | undefined>(undefined);
+  const skipClearSearchRequestRef = useRef(false);
 
   const loadOptions = useCallback(
     (
@@ -156,6 +168,18 @@ export function RemoteSearchSelect<
     (value: string) => {
       setSearchText(value);
 
+      if (
+        shouldSkipClearSearchRequest(
+          value,
+          skipClearSearchRequestRef.current,
+        )
+      ) {
+        skipClearSearchRequestRef.current = false;
+        return;
+      }
+
+      skipClearSearchRequestRef.current = false;
+
       if (searchTimerRef.current !== undefined) {
         window.clearTimeout(searchTimerRef.current);
       }
@@ -182,6 +206,28 @@ export function RemoteSearchSelect<
     },
     [onBlur],
   );
+
+  const handleClear = useCallback(() => {
+    if (searchTimerRef.current !== undefined) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = undefined;
+    }
+
+    fetchRef.current += 1;
+    skipClearSearchRequestRef.current = true;
+
+    const clearedState = getClearedRemoteSearchState<OptionType>();
+
+    setFetching(false);
+    setLoadingMore(false);
+    setOpen(clearedState.open);
+    setOptions(clearedState.options);
+    setHasMore(clearedState.hasMore);
+    setPage(clearedState.page);
+    setSearchText(clearedState.searchText);
+    setTotal(clearedState.total);
+    onClear?.();
+  }, [onClear]);
 
   useEffect(() => {
     return () => {
@@ -241,8 +287,10 @@ export function RemoteSearchSelect<
     }
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (open && options.length === 0 && !fetching) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+
+    if (nextOpen && options.length === 0 && !fetching) {
       loadOptions(searchText, 1, currentPageSize, false);
     }
   };
@@ -299,14 +347,25 @@ export function RemoteSearchSelect<
   return (
     <Select<RemoteSearchValue, OptionType>
       {...props}
+      allowClear={allowClear}
       labelInValue
       loading={fetching}
       mode={selectMode === "multiple" ? "multiple" : undefined}
+      onClear={handleClear}
       onBlur={handleBlur}
       onFocus={handleFocus}
       onOpenChange={handleOpenChange}
       onPopupScroll={
         loadMode === "infinite" ? handlePopupScroll : undefined
+      }
+      open={open}
+      popupStyle={
+        open
+          ? popupStyle
+          : {
+              ...popupStyle,
+              display: "none",
+            }
       }
       popupRender={popupRender}
       showSearch={showSearchConfig}

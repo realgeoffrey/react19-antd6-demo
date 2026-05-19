@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getClearedRemoteSearchState,
   getHasMore,
   getMinimumNotFoundContentHeight,
   getPaginationRequestPage,
@@ -9,6 +10,7 @@ import {
   getRemoteSearchShowSearchConfig,
   getTotalFromHeaders,
   mergeRemoteOptions,
+  shouldSkipClearSearchRequest,
   shouldAllowPaginationPopupMouseDown,
 } from "../src/pages/selectPage/remoteSearchSelect/state.ts";
 
@@ -31,6 +33,23 @@ test("mergeRemoteOptions replaces options for pagination loading", () => {
     mergeRemoteOptions(previousOptions, nextOptions, false),
     nextOptions,
   );
+});
+
+test("getClearedRemoteSearchState clears selected search results and search text state", () => {
+  assert.deepEqual(getClearedRemoteSearchState(), {
+    hasMore: false,
+    open: false,
+    options: [],
+    page: 1,
+    searchText: "",
+    total: 0,
+  });
+});
+
+test("shouldSkipClearSearchRequest skips only the synthetic empty search after clear", () => {
+  assert.equal(shouldSkipClearSearchRequest("", true), true);
+  assert.equal(shouldSkipClearSearchRequest("Alice", true), false);
+  assert.equal(shouldSkipClearSearchRequest("", false), false);
 });
 
 test("getPaginationRequestPage starts from page 1 when page size changes", () => {

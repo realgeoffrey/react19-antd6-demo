@@ -99,6 +99,7 @@ export default function SelectPage() {
           </Space>
 
           <RemoteSearchSelect
+            allowClear
             key={`${selectionMode}-${loadMode}`}
             fetchOptions={fetchUserOptions}
             loadMode={loadMode}
