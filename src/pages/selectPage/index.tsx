@@ -32,7 +32,7 @@ const allowClearOptions: DemoSegmentedOption<boolean>[] = [
   { label: "不可清空", value: false },
 ];
 
-function DemoSegmented<T extends string | boolean>({
+function DemoSegmented<T extends string | number | boolean>({
   options,
   value,
   onChange,
@@ -42,10 +42,10 @@ function DemoSegmented<T extends string | boolean>({
   onChange: (value: T) => void;
 }) {
   return (
-    <Segmented
+    <Segmented<T>
       options={options}
       value={value}
-      onChange={(nextValue) => onChange(nextValue as T)}
+      onChange={onChange}
     />
   );
 }
@@ -64,7 +64,7 @@ function SelectedUsers({
   const selectedUsers = normalizeSelectedUsers(value);
 
   return (
-    <Space direction="vertical" size={4}>
+    <Space orientation="vertical" size={4}>
       <Text type="secondary">选中值</Text>
       {selectedUsers.length === 0 ? (
         <Text type="secondary">未选择</Text>
@@ -113,7 +113,7 @@ export default function SelectPage() {
       </section>
 
       <Card className="demo-card">
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           <Space wrap>
             <DemoSegmented
               options={selectionModeOptions}

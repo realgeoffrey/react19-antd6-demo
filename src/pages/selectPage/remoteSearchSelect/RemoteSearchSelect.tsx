@@ -14,8 +14,8 @@ import {
 import {
   RemoteSearchNotFound,
   RemoteSearchPaginationPopup,
-  renderRemoteSearchOption,
 } from "./RemoteSearchSelectView";
+import { renderRemoteSearchOption } from "./renderRemoteSearchOption";
 import { getRemoteSearchShowSearchConfig } from "./state";
 import type {
   LoadMode,

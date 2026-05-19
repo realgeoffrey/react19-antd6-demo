@@ -1,10 +1,9 @@
 /**
- * RemoteSearchSelect 的 UI 片段：空态、分页底栏、选项渲染。
+ * RemoteSearchSelect 的 UI 片段：空态、分页底栏。
  */
-import type { ReactElement, ReactNode } from "react";
-import { Pagination, Space, Spin } from "antd";
+import type { ReactElement } from "react";
+import { Pagination, Spin } from "antd";
 import {
-  LOADING_MORE_OPTION_VALUE,
   REMOTE_SEARCH_MIN_NOT_FOUND_ROWS,
   REMOTE_SEARCH_OPTION_HEIGHT,
 } from "./constants";
@@ -12,7 +11,6 @@ import {
   getMinimumNotFoundContentHeight,
   shouldAllowPaginationPopupMouseDown,
 } from "./state";
-import type { RemoteSearchOption } from "./types";
 
 const notFoundWrapperStyle = {
   alignItems: "center",
@@ -54,7 +52,7 @@ type RemoteSearchPaginationFooterProps = {
 };
 
 /** 翻页模式底栏：阻止 mousedown 冒泡以免 Select 失焦，但放行 pageSize 下拉 */
-export function RemoteSearchPaginationFooter({
+function RemoteSearchPaginationFooter({
   currentPageSize,
   page,
   total,
@@ -100,26 +98,3 @@ export function RemoteSearchPaginationPopup({
     </div>
   );
 }
-
-type RenderRemoteSearchOptionParams<OptionType extends RemoteSearchOption> = {
-  option: { data: OptionType };
-  renderOption?: (option: OptionType) => ReactNode;
-};
-
-/** 无限滚动“加载更多”占位项与普通选项的统一渲染 */
-export function renderRemoteSearchOption<OptionType extends RemoteSearchOption>({
-  option,
-  renderOption,
-}: RenderRemoteSearchOptionParams<OptionType>) {
-  if (option.data.value === LOADING_MORE_OPTION_VALUE) {
-    return (
-      <Space size={8}>
-        <Spin size="small" />
-        {option.data.label}
-      </Space>
-    );
-  }
-
-  return renderOption ? renderOption(option.data) : option.data.label;
-}
-
