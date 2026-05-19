@@ -5,29 +5,22 @@
  * - 翻页 / 无限滚动共用 loadOptions
  * - 清空时重置内部搜索态并跳过紧随其后的空搜索请求
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import {
   REMOTE_SEARCH_DEFAULT_DEBOUNCE_MS,
   REMOTE_SEARCH_DEFAULT_PAGE_SIZE,
   REMOTE_SEARCH_LOAD_MORE_THRESHOLD,
 } from "./constants";
 import {
-  getClearedRemoteSearchState,
-  getHasMore,
+  createRemoteSearchState,
   getPaginationRequestPage,
-  getPaginationTotal,
   isNearScrollBottom,
-  mergeRemoteOptions,
+  reduceRemoteSearchState,
   shouldSkipClearSearchRequest,
 } from "./state";
-import type {
-  RemoteSearchFetcher,
-  RemoteSearchOption,
-} from "./types";
+import type { RemoteSearchFetcher, RemoteSearchOption } from "./types";
 
-type UseRemoteSearchSelectOptions<
-  OptionType extends RemoteSearchOption,
-> = {
+type UseRemoteSearchSelectOptions<OptionType extends RemoteSearchOption> = {
   debounceTimeout?: number;
   fetchOptions: RemoteSearchFetcher<OptionType>;
   onClear?: () => void;
@@ -42,26 +35,29 @@ export function useRemoteSearchSelect<
   onClear,
   pageSize = REMOTE_SEARCH_DEFAULT_PAGE_SIZE,
 }: UseRemoteSearchSelectOptions<OptionType>) {
-  const [fetching, setFetching] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [options, setOptions] = useState<OptionType[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [currentPageSize, setCurrentPageSize] = useState(pageSize);
-  const [inputFocused, setInputFocused] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [total, setTotal] = useState(0);
+  const [state, dispatch] = useReducer(
+    reduceRemoteSearchState<OptionType>,
+    pageSize,
+    createRemoteSearchState<OptionType>,
+  );
 
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
   const fetchRef = useRef(0);
   const searchTimerRef = useRef<number | undefined>(undefined);
   const skipClearSearchRequestRef = useRef(false);
+  const fetching = state.status === "loading";
+  const loadingMore = state.status === "loadingMore";
 
   const clearSearchTimer = useCallback(() => {
     if (searchTimerRef.current !== undefined) {
       window.clearTimeout(searchTimerRef.current);
       searchTimerRef.current = undefined;
     }
+  }, []);
+
+  const abortInFlightRequest = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = undefined;
   }, []);
 
   const loadOptions = useCallback(
@@ -73,18 +69,14 @@ export function useRemoteSearchSelect<
     ) => {
       fetchRef.current += 1;
       const fetchId = fetchRef.current;
+      abortInFlightRequest();
+      const controller = new AbortController();
 
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setOptions([]);
-        setFetching(true);
-        setLoadingMore(false);
-        setHasMore(false);
-        setTotal(0);
-      }
+      abortControllerRef.current = controller;
+      dispatch({ type: "requestStarted", append });
 
       fetchOptions({
+        signal: controller.signal,
         searchText: nextSearchText,
         page: nextPage,
         limit: nextPageSize,
@@ -94,49 +86,35 @@ export function useRemoteSearchSelect<
             return;
           }
 
-          setOptions((previousOptions) =>
-            mergeRemoteOptions(previousOptions, result.options, append),
-          );
-          setPage(nextPage);
-          setCurrentPageSize(nextPageSize);
-          setHasMore(
-            getHasMore(result.options.length, nextPageSize, result.hasMore),
-          );
-          setTotal(
-            getPaginationTotal(
-              result.total,
-              nextPage,
-              nextPageSize,
-              result.options.length,
-            ),
-          );
+          dispatch({
+            type: "requestSucceeded",
+            append,
+            page: nextPage,
+            pageSize: nextPageSize,
+            result,
+          });
         })
         .catch(() => {
           if (fetchId !== fetchRef.current) {
             return;
           }
 
-          if (!append) {
-            setOptions([]);
-          }
-          setHasMore(false);
-          setTotal(0);
+          dispatch({ type: "requestFailed", append });
         })
         .finally(() => {
           if (fetchId !== fetchRef.current) {
             return;
           }
 
-          setFetching(false);
-          setLoadingMore(false);
+          abortControllerRef.current = undefined;
         });
     },
-    [fetchOptions],
+    [abortInFlightRequest, fetchOptions],
   );
 
   const handleSearch = useCallback(
     (value: string) => {
-      setSearchText(value);
+      dispatch({ type: "searchChanged", searchText: value });
 
       if (
         shouldSkipClearSearchRequest(value, skipClearSearchRequestRef.current)
@@ -149,92 +127,109 @@ export function useRemoteSearchSelect<
       clearSearchTimer();
 
       searchTimerRef.current = window.setTimeout(() => {
-        loadOptions(value, 1, currentPageSize, false);
+        loadOptions(value, 1, state.currentPageSize, false);
       }, debounceTimeout);
     },
-    [clearSearchTimer, currentPageSize, debounceTimeout, loadOptions],
+    [clearSearchTimer, debounceTimeout, loadOptions, state.currentPageSize],
   );
 
   const handleClear = useCallback(() => {
     clearSearchTimer();
     fetchRef.current += 1;
+    abortInFlightRequest();
     skipClearSearchRequestRef.current = true;
-
-    const cleared = getClearedRemoteSearchState<OptionType>();
-
-    setFetching(false);
-    setLoadingMore(false);
-    setOpen(cleared.open);
-    setOptions(cleared.options);
-    setHasMore(cleared.hasMore);
-    setPage(cleared.page);
-    setSearchText(cleared.searchText);
-    setTotal(cleared.total);
+    dispatch({ type: "clear" });
     onClear?.();
-  }, [clearSearchTimer, onClear]);
+  }, [abortInFlightRequest, clearSearchTimer, onClear]);
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
-      setOpen(nextOpen);
+      dispatch({ type: "openChanged", open: nextOpen });
 
-      if (nextOpen && options.length === 0 && !fetching) {
-        loadOptions(searchText, 1, currentPageSize, false);
+      if (
+        nextOpen &&
+        state.options.length === 0 &&
+        state.status !== "loading"
+      ) {
+        loadOptions(state.searchText, 1, state.currentPageSize, false);
       }
     },
-    [currentPageSize, fetching, loadOptions, options.length, searchText],
+    [
+      loadOptions,
+      state.currentPageSize,
+      state.options.length,
+      state.searchText,
+      state.status,
+    ],
   );
 
   const handlePaginationChange = useCallback(
     (nextPage: number, nextPageSize: number) => {
       loadOptions(
-        searchText,
-        getPaginationRequestPage(nextPage, nextPageSize, currentPageSize),
+        state.searchText,
+        getPaginationRequestPage(nextPage, nextPageSize, state.currentPageSize),
         nextPageSize,
         false,
       );
     },
-    [currentPageSize, loadOptions, searchText],
+    [loadOptions, state.currentPageSize, state.searchText],
   );
 
   const handlePopupScroll = useCallback(
     (target: HTMLDivElement) => {
       if (
         isNearScrollBottom(target, REMOTE_SEARCH_LOAD_MORE_THRESHOLD) &&
-        hasMore &&
+        state.hasMore &&
         !fetching &&
         !loadingMore
       ) {
-        loadOptions(searchText, page + 1, currentPageSize, true);
+        loadOptions(
+          state.searchText,
+          state.page + 1,
+          state.currentPageSize,
+          true,
+        );
       }
     },
     [
-      currentPageSize,
       fetching,
-      hasMore,
       loadOptions,
       loadingMore,
-      page,
-      searchText,
+      state.currentPageSize,
+      state.hasMore,
+      state.page,
+      state.searchText,
     ],
   );
 
-  useEffect(() => () => clearSearchTimer(), [clearSearchTimer]);
+  const setInputFocused = useCallback((inputFocused: boolean) => {
+    dispatch({ type: "focusChanged", inputFocused });
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearSearchTimer();
+      fetchRef.current += 1;
+      abortInFlightRequest();
+    },
+    [abortInFlightRequest, clearSearchTimer],
+  );
 
   return {
-    currentPageSize,
+    currentPageSize: state.currentPageSize,
     fetching,
     handleClear,
     handleOpenChange,
     handlePaginationChange,
     handlePopupScroll,
     handleSearch,
-    inputFocused,
+    inputFocused: state.inputFocused,
     loadingMore,
-    open,
-    options,
-    page,
-    searchText,
-    total,
+    open: state.open,
+    options: state.options,
+    page: state.page,
+    searchText: state.searchText,
+    total: state.total,
     setInputFocused,
   };
 }

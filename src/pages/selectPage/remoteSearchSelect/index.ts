@@ -10,6 +10,7 @@ export type {
   RemoteSearchFetchParams,
   RemoteSearchFetchResult,
   RemoteSearchFetcher,
+  RemoteSearchLabeledValue,
   RemoteSearchOption,
   RemoteSearchValue,
   SelectMode,

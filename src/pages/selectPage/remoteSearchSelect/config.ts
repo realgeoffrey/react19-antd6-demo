@@ -6,10 +6,9 @@ import type {
   RemoteSearchFetchResult,
   RemoteSearchOption,
 } from "./types.ts";
-import { getTotalFromHeaders } from "./state.ts";
 
 export const USER_SEARCH_API =
-  "https://660d2bd96ddfa2943b33731c.mockapi.io/api/users/";
+  "https://61273138c2e8920017bc0b3c.mockapi.io/api/users";
 
 export type RemoteUser = {
   id?: string | number;
@@ -18,6 +17,11 @@ export type RemoteUser = {
 };
 
 export type UserOption = RemoteSearchOption<RemoteUser>;
+
+type UserSearchResponse = {
+  data?: unknown;
+  total?: unknown;
+};
 
 export function buildUserSearchUrl(
   username: string,
@@ -34,29 +38,42 @@ export function buildUserSearchUrl(
 }
 
 export function mapUsersToOptions(response: unknown): UserOption[] {
-  if (!Array.isArray(response)) {
+  const data = (response as UserSearchResponse | null)?.data;
+
+  if (!Array.isArray(data)) {
     return [];
   }
 
-  return response.map((user: RemoteUser) => ({
+  return data.map((user: RemoteUser) => ({
     label: user.name ?? "",
     value: String(user.id ?? ""),
     raw: user,
   }));
 }
 
+export function getUserSearchTotal(response: unknown) {
+  const total = (response as UserSearchResponse | null)?.total;
+
+  return typeof total === "number" && Number.isFinite(total)
+    ? total
+    : undefined;
+}
+
 export async function fetchUserOptions({
+  signal,
   searchText,
   page,
   limit,
 }: RemoteSearchFetchParams): Promise<RemoteSearchFetchResult<UserOption>> {
   try {
-    const response = await fetch(buildUserSearchUrl(searchText, page, limit));
+    const response = await fetch(buildUserSearchUrl(searchText, page, limit), {
+      signal,
+    });
     const data: unknown = await response.json();
 
     return {
       options: mapUsersToOptions(data),
-      total: getTotalFromHeaders(response.headers),
+      total: getUserSearchTotal(data),
     };
   } catch {
     console.log("fetch mock data failed");

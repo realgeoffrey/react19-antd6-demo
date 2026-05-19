@@ -13,18 +13,18 @@ export type RemoteSearchOption<Raw = unknown> = {
   raw?: Raw;
 };
 
+export type RemoteSearchLabeledValue = {
+  label: ReactNode;
+  value: string | number;
+};
+
 export type RemoteSearchValue =
-  | {
-      label: ReactNode;
-      value: string | number;
-    }
-  | {
-      label: ReactNode;
-      value: string | number;
-    }[]
+  | RemoteSearchLabeledValue
+  | RemoteSearchLabeledValue[]
   | undefined;
 
 export type RemoteSearchFetchParams = {
+  signal?: AbortSignal;
   searchText: string;
   page: number;
   limit: number;

@@ -9,10 +9,9 @@ type RenderRemoteSearchOptionParams<OptionType extends RemoteSearchOption> = {
 };
 
 /** 无限滚动“加载更多”占位项与普通选项的统一渲染 */
-export function renderRemoteSearchOption<OptionType extends RemoteSearchOption>({
-  option,
-  renderOption,
-}: RenderRemoteSearchOptionParams<OptionType>) {
+export function renderRemoteSearchOption<
+  OptionType extends RemoteSearchOption,
+>({ option, renderOption }: RenderRemoteSearchOptionParams<OptionType>) {
   if (option.data.value === LOADING_MORE_OPTION_VALUE) {
     return (
       <Space size={8}>

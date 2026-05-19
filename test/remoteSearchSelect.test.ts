@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createRemoteSearchState,
   getClearedRemoteSearchState,
   getHasMore,
   getMinimumNotFoundContentHeight,
   getPaginationRequestPage,
   getPaginationTotal,
   getRemoteSearchShowSearchConfig,
+  reduceRemoteSearchState,
   getTotalFromHeaders,
   mergeRemoteOptions,
   shouldSkipClearSearchRequest,
@@ -97,4 +99,144 @@ test("shouldAllowPaginationPopupMouseDown lets pagination option controls keep f
 
 test("getMinimumNotFoundContentHeight keeps empty and loading dropdowns at three option rows", () => {
   assert.equal(getMinimumNotFoundContentHeight(32, 3), 96);
+});
+
+test("reduceRemoteSearchState starts a fresh request by clearing stale options", () => {
+  const state = {
+    ...createRemoteSearchState(10),
+    hasMore: true,
+    options: previousOptions,
+    total: 35,
+  };
+
+  assert.deepEqual(
+    reduceRemoteSearchState(state, {
+      type: "requestStarted",
+      append: false,
+    }),
+    {
+      ...state,
+      hasMore: false,
+      options: [],
+      status: "loading",
+      total: 0,
+    },
+  );
+});
+
+test("reduceRemoteSearchState starts an append request without clearing loaded options", () => {
+  const state = {
+    ...createRemoteSearchState(10),
+    options: previousOptions,
+  };
+
+  assert.deepEqual(
+    reduceRemoteSearchState(state, {
+      type: "requestStarted",
+      append: true,
+    }),
+    {
+      ...state,
+      status: "loadingMore",
+    },
+  );
+});
+
+test("reduceRemoteSearchState stores successful page results and pagination metadata", () => {
+  const state = {
+    ...createRemoteSearchState(10),
+    options: previousOptions,
+    status: "loadingMore" as const,
+  };
+
+  assert.deepEqual(
+    reduceRemoteSearchState(state, {
+      type: "requestSucceeded",
+      append: true,
+      page: 2,
+      pageSize: 10,
+      result: {
+        options: nextOptions,
+        total: 23,
+      },
+    }),
+    {
+      ...state,
+      currentPageSize: 10,
+      hasMore: false,
+      options: [...previousOptions, ...nextOptions],
+      page: 2,
+      status: "idle",
+      total: 23,
+    },
+  );
+});
+
+test("reduceRemoteSearchState falls back to inferred total when response omits total", () => {
+  const fullPageOptions = Array.from({ length: 10 }, (_, index) => ({
+    label: `User ${index + 1}`,
+    value: String(index + 1),
+  }));
+
+  assert.equal(
+    reduceRemoteSearchState(createRemoteSearchState(10), {
+      type: "requestSucceeded",
+      append: false,
+      page: 1,
+      pageSize: 10,
+      result: {
+        options: fullPageOptions,
+      },
+    }).total,
+    11,
+  );
+
+  assert.equal(
+    reduceRemoteSearchState(createRemoteSearchState(10), {
+      type: "requestSucceeded",
+      append: false,
+      page: 3,
+      pageSize: 10,
+      result: {
+        options: nextOptions,
+      },
+    }).total,
+    21,
+  );
+});
+
+test("reduceRemoteSearchState resets loading state after failed requests", () => {
+  const state = {
+    ...createRemoteSearchState(10),
+    options: previousOptions,
+    status: "loadingMore" as const,
+    total: 35,
+  };
+
+  assert.deepEqual(
+    reduceRemoteSearchState(state, {
+      type: "requestFailed",
+      append: true,
+    }),
+    {
+      ...state,
+      hasMore: false,
+      status: "idle",
+      total: 0,
+    },
+  );
+
+  assert.deepEqual(
+    reduceRemoteSearchState(state, {
+      type: "requestFailed",
+      append: false,
+    }),
+    {
+      ...state,
+      hasMore: false,
+      options: [],
+      status: "idle",
+      total: 0,
+    },
+  );
 });

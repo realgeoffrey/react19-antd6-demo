@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Card, Segmented, Space, Typography } from "antd";
 import {
@@ -6,14 +5,15 @@ import {
   RemoteSearchSelect,
   renderUserOption,
 } from "./remoteSearchSelect";
-import type { LoadMode, SelectMode } from "./remoteSearchSelect";
+import type {
+  LoadMode,
+  RemoteSearchLabeledValue,
+  SelectMode,
+} from "./remoteSearchSelect";
 
 const { Paragraph, Text, Title } = Typography;
 
-type SelectedUserValue = {
-  label: ReactNode;
-  value: string | number;
-};
+type SelectedUserValue = RemoteSearchLabeledValue;
 
 type DemoSegmentedOption<T> = { label: string; value: T };
 
@@ -80,15 +80,13 @@ function SelectedUsers({
 }
 
 export default function SelectPage() {
-  const [selectionMode, setSelectionMode] =
-    useState<SelectMode>("multiple");
+  const [selectionMode, setSelectionMode] = useState<SelectMode>("multiple");
   const [loadMode, setLoadMode] = useState<LoadMode>("pagination");
   const [allowClear, setAllowClear] = useState(true);
   const [singleValue, setSingleValue] = useState<SelectedUserValue>();
   const [multipleValue, setMultipleValue] = useState<SelectedUserValue[]>([]);
 
-  const value =
-    selectionMode === "multiple" ? multipleValue : singleValue;
+  const value = selectionMode === "multiple" ? multipleValue : singleValue;
 
   const handleSelectChange = useCallback(
     (newValue: SelectedUserValue | SelectedUserValue[] | undefined) => {
@@ -140,7 +138,7 @@ export default function SelectPage() {
             onChange={handleSelectChange}
             placeholder="Select users"
             renderOption={renderUserOption}
-            selectMode={selectionMode}
+            selectionMode={selectionMode}
             style={{ width: "100%" }}
             value={value}
           />

@@ -51,6 +51,7 @@ export type RemoteSearchSelectProps<
   onClear?: SelectProps<RemoteSearchValue, OptionType>["onClear"];
   pageSize?: number;
   renderOption?: (option: OptionType) => ReactNode;
+  selectionMode?: SelectMode;
   selectMode?: SelectMode;
 };
 
@@ -65,7 +66,8 @@ export function RemoteSearchSelect<
   pageSize = REMOTE_SEARCH_DEFAULT_PAGE_SIZE,
   popupStyle,
   renderOption,
-  selectMode = "multiple",
+  selectionMode,
+  selectMode,
   onBlur,
   onClear,
   onFocus,
@@ -95,6 +97,7 @@ export function RemoteSearchSelect<
   });
 
   const isInfinite = loadMode === "infinite";
+  const resolvedSelectionMode = selectionMode ?? selectMode ?? "multiple";
 
   const showSearchConfig = useMemo(
     () => ({
@@ -104,26 +107,23 @@ export function RemoteSearchSelect<
     [handleSearch, inputFocused, searchText],
   );
 
-  const popupRender = useMemo(
-    () => (menu: ReactElement) => {
-      if (loadMode !== "pagination") {
-        return menu;
-      }
+  const popupRender = useMemo(() => {
+    if (loadMode !== "pagination") {
+      return undefined;
+    }
 
-      return (
-        <RemoteSearchPaginationPopup
-          menu={menu}
-          footerProps={{
-            currentPageSize,
-            page,
-            total,
-            onChange: handlePaginationChange,
-          }}
-        />
-      );
-    },
-    [currentPageSize, handlePaginationChange, loadMode, page, total],
-  );
+    return (menu: ReactElement) => (
+      <RemoteSearchPaginationPopup
+        menu={menu}
+        footerProps={{
+          currentPageSize,
+          page,
+          total,
+          onChange: handlePaginationChange,
+        }}
+      />
+    );
+  }, [currentPageSize, handlePaginationChange, loadMode, page, total]);
 
   const selectOptions = useMemo(() => {
     if (!isInfinite || !loadingMore) {
@@ -169,7 +169,7 @@ export function RemoteSearchSelect<
       allowClear={allowClear}
       labelInValue
       loading={fetching}
-      mode={selectMode === "multiple" ? "multiple" : undefined}
+      mode={resolvedSelectionMode === "multiple" ? "multiple" : undefined}
       notFoundContent={<RemoteSearchNotFound fetching={fetching} />}
       onBlur={handleBlur}
       onClear={handleClear}
@@ -182,14 +182,7 @@ export function RemoteSearchSelect<
         renderRemoteSearchOption({ option, renderOption })
       }
       popupRender={popupRender}
-      popupStyle={
-        open
-          ? popupStyle
-          : {
-              ...popupStyle,
-              display: "none",
-            }
-      }
+      popupStyle={popupStyle}
       showSearch={showSearchConfig}
     />
   );

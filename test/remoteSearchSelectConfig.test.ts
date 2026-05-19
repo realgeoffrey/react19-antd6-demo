@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildUserSearchUrl,
+  getUserSearchTotal,
   mapUsersToOptions,
 } from "../src/pages/selectPage/remoteSearchSelect/config.ts";
 
@@ -11,15 +12,18 @@ test("buildUserSearchUrl includes search, page, and limit params", () => {
 
   assert.equal(
     url,
-    "https://660d2bd96ddfa2943b33731c.mockapi.io/api/users/?search=alice+bob&page=2&limit=10",
+    "https://61273138c2e8920017bc0b3c.mockapi.io/api/users?search=alice+bob&page=2&limit=10",
   );
 });
 
-test("mapUsersToOptions maps array responses and ignores non-array responses", () => {
+test("mapUsersToOptions maps data-array responses and ignores invalid responses", () => {
   assert.deepEqual(
-    mapUsersToOptions([
-      { id: "1", name: "Alice", avatar: "https://example.com/a.png" },
-    ]),
+    mapUsersToOptions({
+      data: [
+        { id: "1", name: "Alice", avatar: "https://example.com/a.png" },
+      ],
+      total: 100,
+    }),
     [
       {
         label: "Alice",
@@ -34,4 +38,10 @@ test("mapUsersToOptions maps array responses and ignores non-array responses", (
   );
 
   assert.deepEqual(mapUsersToOptions({ message: "not found" }), []);
+});
+
+test("getUserSearchTotal reads numeric total from response body", () => {
+  assert.equal(getUserSearchTotal({ data: [], total: 100 }), 100);
+  assert.equal(getUserSearchTotal({ data: [], total: "100" }), undefined);
+  assert.equal(getUserSearchTotal({ data: [] }), undefined);
 });
