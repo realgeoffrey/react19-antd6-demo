@@ -1,5 +1,5 @@
 import { ConfigProvider } from 'antd'
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import DemoPage from './pages/demo'
 import SelectPage from './pages/selectPage'
 import './App.css'
@@ -19,7 +19,7 @@ function App() {
         },
       }}
     >
-      <BrowserRouter>
+      <HashRouter>
         <div className="app-shell">
           <nav className="app-nav">
             {navItems.map((item) => (
@@ -35,7 +35,7 @@ function App() {
             <Route path="/select" element={<SelectPage />} />
           </Routes>
         </div>
-      </BrowserRouter>
+      </HashRouter>
     </ConfigProvider>
   );
 }
