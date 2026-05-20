@@ -16,7 +16,10 @@ import {
   RemoteSearchPaginationPopup,
 } from "./RemoteSearchSelectView";
 import { renderRemoteSearchOption } from "./renderRemoteSearchOption";
-import { getRemoteSearchShowSearchConfig } from "./state";
+import {
+  getRemoteSearchDisplaySearchValue,
+  getRemoteSearchShowSearchConfig,
+} from "./state";
 import type {
   LoadMode,
   RemoteSearchFetcher,
@@ -101,10 +104,12 @@ export function RemoteSearchSelect<
 
   const showSearchConfig = useMemo(
     () => ({
-      ...getRemoteSearchShowSearchConfig(inputFocused ? searchText : ""),
+      ...getRemoteSearchShowSearchConfig(
+        getRemoteSearchDisplaySearchValue(searchText, inputFocused, open),
+      ),
       onSearch: handleSearch,
     }),
-    [handleSearch, inputFocused, searchText],
+    [handleSearch, inputFocused, open, searchText],
   );
 
   const popupRender = useMemo(() => {

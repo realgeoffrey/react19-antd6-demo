@@ -8,6 +8,7 @@ import {
   getMinimumNotFoundContentHeight,
   getPaginationRequestPage,
   getPaginationTotal,
+  getRemoteSearchDisplaySearchValue,
   getRemoteSearchShowSearchConfig,
   reduceRemoteSearchState,
   getTotalFromHeaders,
@@ -84,6 +85,12 @@ test("getRemoteSearchShowSearchConfig keeps displayed input tied to search text"
     filterOption: false,
     searchValue: "Alice",
   });
+});
+
+test("getRemoteSearchDisplaySearchValue keeps search visible while popup is open", () => {
+  assert.equal(getRemoteSearchDisplaySearchValue("Alice", true, false), "Alice");
+  assert.equal(getRemoteSearchDisplaySearchValue("Alice", false, true), "Alice");
+  assert.equal(getRemoteSearchDisplaySearchValue("Alice", false, false), "");
 });
 
 test("shouldAllowPaginationPopupMouseDown lets pagination option controls keep focus", () => {

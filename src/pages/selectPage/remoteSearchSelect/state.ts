@@ -192,6 +192,14 @@ export function getRemoteSearchShowSearchConfig(searchValue: string) {
   };
 }
 
+export function getRemoteSearchDisplaySearchValue(
+  searchText: string,
+  inputFocused: boolean,
+  open: boolean,
+) {
+  return inputFocused || open ? searchText : "";
+}
+
 export function shouldAllowPaginationPopupMouseDown(
   target: EventTarget | null,
 ) {
